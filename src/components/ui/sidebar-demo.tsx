@@ -1,13 +1,45 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
-import { LayoutDashboard, UserCog, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, UserCog, Settings, LogOut, Users } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { ProfileContent } from "@/components/ui/profile-content";
+import { DiscoverContent } from "@/components/ui/discover-content";
 
 export function SidebarDemo() {
+  const router = useRouter();
+  const [user, setUser] = useState<{ name: string; email: string; picture: string } | null>(null);
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; radius_m: number } | null>(null);
+
+  useEffect(() => {
+    // Get user data from URL params (from OAuth)
+    const urlParams = new URLSearchParams(window.location.search);
+    const userParam = urlParams.get('user');
+    
+    if (userParam) {
+      try {
+        const userData = JSON.parse(userParam);
+        setUser(userData);
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+      }
+    }
+  }, []);
+
+  const handleLogout = () => {
+    if (window.confirm("Are you sure you want to logout?")) {
+      setUser(null);
+      router.push('/');
+    }
+  };
+
   const links = [
     {
       label: "Dashboard",
@@ -15,6 +47,15 @@ export function SidebarDemo() {
       icon: (
         <LayoutDashboard className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
       ),
+      onClick: () => setActiveTab("dashboard"),
+    },
+    {
+      label: "Discover",
+      href: "#",
+      icon: (
+        <Users className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
+      ),
+      onClick: () => setActiveTab("discover"),
     },
     {
       label: "Profile",
@@ -22,6 +63,7 @@ export function SidebarDemo() {
       icon: (
         <UserCog className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
       ),
+      onClick: () => setActiveTab("profile"),
     },
     {
       label: "Settings",
@@ -29,6 +71,7 @@ export function SidebarDemo() {
       icon: (
         <Settings className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
       ),
+      onClick: () => setActiveTab("settings"),
     },
     {
       label: "Logout",
@@ -36,14 +79,14 @@ export function SidebarDemo() {
       icon: (
         <LogOut className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
       ),
+      onClick: handleLogout,
     },
   ];
   const [open, setOpen] = useState(false);
   return (
     <div
       className={cn(
-        "rounded-md flex flex-col md:flex-row bg-gray-100 dark:bg-neutral-800 w-full flex-1 max-w-7xl mx-auto border border-neutral-200 dark:border-neutral-700 overflow-hidden",
-        "h-[60vh]"
+        "flex flex-col md:flex-row bg-gray-100 dark:bg-neutral-800 w-full h-screen border border-neutral-200 dark:border-neutral-700 overflow-hidden"
       )}
     >
       <Sidebar open={open} setOpen={setOpen}>
@@ -52,18 +95,22 @@ export function SidebarDemo() {
             {open ? <Logo /> : <LogoIcon />}
             <div className="mt-8 flex flex-col gap-2">
               {links.map((link, idx) => (
-                <SidebarLink key={idx} link={link} />
+                <SidebarLink 
+                  key={idx} 
+                  link={link} 
+                  onClick={link.onClick}
+                />
               ))}
             </div>
           </div>
           <div>
             <SidebarLink
               link={{
-                label: "Manu Arora",
+                label: user?.name || "Guest User",
                 href: "#",
                 icon: (
                   <Image
-                    src="https://assets.aceternity.com/manu.png"
+                    src={user?.picture || "https://assets.aceternity.com/manu.png"}
                     className="h-7 w-7 flex-shrink-0 rounded-full"
                     width={50}
                     height={50}
@@ -71,11 +118,15 @@ export function SidebarDemo() {
                   />
                 ),
               }}
+              onClick={() => setActiveTab("profile")}
             />
           </div>
         </SidebarBody>
       </Sidebar>
-      <Dashboard />
+      {activeTab === "dashboard" && <Dashboard />}
+      {activeTab === "discover" && <DiscoverContent user={user} userLocation={userLocation} />}
+      {activeTab === "profile" && <ProfileContent user={user} onLocationUpdate={setUserLocation} />}
+      {activeTab === "settings" && <SettingsContent />}
     </div>
   );
 }
@@ -92,7 +143,7 @@ export const Logo = () => {
         animate={{ opacity: 1 }}
         className="font-medium text-black dark:text-white whitespace-pre"
       >
-        Acet Labs
+        LinkUp
       </motion.span>
     </Link>
   );
@@ -128,6 +179,21 @@ const Dashboard = () => {
               className="h-full w-full rounded-lg  bg-gray-100 dark:bg-neutral-800 animate-pulse"
             ></div>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SettingsContent = () => {
+  return (
+    <div className="flex flex-1">
+      <div className="p-2 md:p-10 rounded-tl-2xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 flex flex-col gap-2 flex-1 w-full h-full">
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <h2 className="text-2xl font-semibold mb-4">Settings</h2>
+            <p className="text-muted-foreground">Settings panel coming soon...</p>
+          </div>
         </div>
       </div>
     </div>
